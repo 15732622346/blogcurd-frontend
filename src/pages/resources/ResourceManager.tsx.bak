@@ -1,0 +1,178 @@
+import React, { useState } from 'react';
+import { 
+  Card, 
+  Table, 
+  Image, 
+  Button, 
+  Input, 
+  Space, 
+  Popconfirm, 
+  message, 
+  Tabs,
+  Upload,
+  Modal
+} from 'antd';
+import {
+  SearchOutlined,
+  UploadOutlined,
+  DeleteOutlined,
+  CopyOutlined,
+  EyeOutlined,
+  FileImageOutlined,
+  FileOutlined
+} from '@ant-design/icons';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { filesApi, File, FileQueryParams } from '../../services/files';
+import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
+import { formatBytes } from '../../utils/format';
+
+const { TabPane } = Tabs;
+
+const ResourceManager: React.FC = () => {
+  const [searchParams, setSearchParams] = useState<FileQueryParams>({ page: 1, limit: 10 });
+  const [selectedTab, setSelectedTab] = useState<string>('images');
+  const [previewVisible, setPreviewVisible] = useState<boolean>(false);
+  const [previewImage, setPreviewImage] = useState<string>('');
+  const [uploadVisible, setUploadVisible] = useState<boolean>(false);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [uploading, setUploading] = useState<boolean>(false);
+
+  const queryClient = useQueryClient();
+
+  // 获取文件列表
+  const { data: filesData, isLoading } = useQuery({
+    queryKey: ['files', searchParams, selectedTab],
+    queryFn: () => {
+      if (selectedTab === 'images') {
+        return filesApi.getImages(searchParams);
+      }
+      return filesApi.getFiles(searchParams);
+    },
+  });
+
+  // 删除文件
+  const deleteMutation = useMutation({
+    mutationFn: filesApi.deleteFile,
+    onSuccess: () => {
+      message.success('文件删除成功');
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+    },
+    onError: () => {
+      message.error('删除文件失败');
+    },
+  });
+
+  // 处理搜索
+  const handleSearch = (value: string) => {
+    setSearchParams({
+      ...searchParams,
+      page: 1,
+      // 根据文件名搜索
+      mime_type: value ? undefined : (selectedTab === 'images' ? 'image/' : undefined),
+    });
+  };
+
+  // 处理分页
+  const handlePageChange = (page: number, pageSize: number) => {
+    setSearchParams({
+      ...searchParams,
+      page,
+      limit: pageSize,
+    });
+  };
+
+  // 处理预览
+  const handlePreview = (imagePath: string) => {
+    setPreviewImage(imagePath);
+    setPreviewVisible(true);
+  };
+
+  // 处理Tab切换
+  const handleTabChange = (activeKey: string) => {
+    setSelectedTab(activeKey);
+    setSearchParams({
+      ...searchParams,
+      page: 1,
+      mime_type: activeKey === 'images' ? 'image/' : undefined,
+    });
+  };
+
+  // 处理复制链接
+  const handleCopyLink = (link: string) => {
+    navigator.clipboard.writeText(link).then(
+      () => {
+        message.success('链接已复制到剪贴板');
+      },
+      () => {
+        message.error('复制失败');
+      }
+    );
+  };
+
+  // 处理删除文件
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
+  };
+
+  // 处理上传文件
+  const handleUpload = async () => {
+    if (fileList.length === 0) {
+      message.warning('请先选择文件');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      // 上传文件
+      const promises = fileList.map((file) => {
+        const formData = new FormData();
+        formData.append('file', file.originFileObj as Blob);
+        return filesApi.uploadImage(formData);
+      });
+
+      await Promise.all(promises);
+
+      setFileList([]);
+      setUploadVisible(false);
+      message.success('上传成功');
+      // 刷新文件列表
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+    } catch (error) {
+      message.error('上传失败');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 上传组件属性
+  const uploadProps: UploadProps = {
+    onRemove: (file) => {
+      const index = fileList.indexOf(file);
+      const newFileList = fileList.slice();
+      newFileList.splice(index, 1);
+      setFileList(newFileList);
+    },
+    beforeUpload: (file) => {
+      setFileList([...fileList, file as UploadFile]);
+      return false;
+    },
+    fileList,
+    multiple: true,
+  };
+
+  // 表格列配置
+  const columns = [
+    {
+      title: '文件预览',
+      dataIndex: 'file_path',
+      key: 'preview',
+      render: (filePath: string, record: File) => {
+        if (record.mime_type.startsWith('image/')) {
+          return (
+            <Image
+              src={filePath}
+              alt={record.original_name}
+              style={{ width: 60, height: 60, objectFit: 'cover' }}
+              placeholder={<div style={{ width: 60, height: 60, background: '#f0f0f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}><FileImageOutlined /></div>}
+ 
