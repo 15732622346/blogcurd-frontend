@@ -41,11 +41,6 @@ const MainLayout = () => {
         label: '分类管理',
       },
       {
-        key: '/admin/resources',
-        icon: <FileImageOutlined />,
-        label: '资源管理',
-      },
-      {
         key: '/admin/resume',
         icon: <UserOutlined />,
         label: '个人简历',

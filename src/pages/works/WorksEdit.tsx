@@ -6,6 +6,7 @@ import { worksApi } from '../../services/works';
 import { filesApi, FileItem } from '../../services/files';
 
 const WorksEdit: React.FC = () => {
+  const [title, setTitle] = useState<string>('');
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
@@ -57,6 +58,7 @@ const WorksEdit: React.FC = () => {
         setLoading(true);
         const response = await worksApi.getMyWorks();
         const workData = Array.isArray(response.data) ? response.data[0] : response.data;
+        setTitle(workData?.title || '');
         setContent(workData?.content || '');
         setWorkId(workData?.id || null);
       } catch (error) {
@@ -70,13 +72,17 @@ const WorksEdit: React.FC = () => {
 
   // 保存作品
   const handleSave = async () => {
+    if (!title.trim()) {
+      message.error('请输入作品标题');
+      return;
+    }
     try {
       setSaving(true);
       if (workId) {
-        await worksApi.updateWork(workId, { content });
+        await worksApi.updateWork(workId, { title, content });
         message.success('作品更新成功');
       } else {
-        const res = await worksApi.createWork({ content });
+        const res = await worksApi.createWork({ title, content });
         setWorkId(res.data?.id || null);
         message.success('作品创建成功');
       }
@@ -94,6 +100,7 @@ const WorksEdit: React.FC = () => {
       setDeleting(true);
       await worksApi.deleteWork(workId);
       message.success('作品已删除');
+      setTitle('');
       setContent('');
       setWorkId(null);
     } catch (error) {
@@ -184,6 +191,15 @@ const WorksEdit: React.FC = () => {
       ) : (
         <>
           <Form layout="vertical">
+            <Form.Item label="作品标题" required>
+              <Input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="请输入作品标题"
+                maxLength={255}
+                showCount
+              />
+            </Form.Item>
             <Form.Item label="作品内容">
               <div data-color-mode="light">
                 <MDEditor

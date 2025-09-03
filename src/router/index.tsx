@@ -5,7 +5,6 @@ import Dashboard from '../pages/dashboard';
 import PostList from '../pages/posts/PostList';
 import PostEdit from '../pages/posts/PostEdit';
 import CategoryList from '../pages/categories';
-import FileList from '../pages/files/FileList';
 import Profile from '../pages/profile';
 import ResumeEdit from '../pages/resume/ResumeEdit';
 import AdvertisementEdit from '../pages/advertisement/AdvertisementEdit';
@@ -52,10 +51,6 @@ export const router = createBrowserRouter([
       },
       {
         path: 'files',
-        element: <FileList />,
-      },
-      {
-        path: 'resources',
         element: <ResourceManager />,
       },
       {

@@ -203,6 +203,14 @@ const ResourceManager: React.FC = () => {
         }
       }
       
+      // 确保URL包含完整的服务器地址
+      if (processedUrl.startsWith('/api/')) {
+        // 从环境变量获取API服务器地址
+        const apiBaseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://192.168.253.128:3000';
+        processedUrl = `${apiBaseUrl}${processedUrl}`;
+        console.log('添加服务器地址后的URL:', processedUrl);
+      }
+      
       // 添加时间戳防止缓存
       const timeStamp = new Date().getTime();
       processedUrl = processedUrl.includes('?') 
@@ -459,6 +467,14 @@ const ResourceManager: React.FC = () => {
               console.log('替换完整URL为API代理:', imageUrl);
             }
           }
+        }
+        
+        // 确保URL包含完整的服务器地址
+        if (imageUrl.startsWith('/api/')) {
+          // 从环境变量获取API服务器地址
+          const apiBaseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://192.168.253.128:3000';
+          imageUrl = `${apiBaseUrl}${imageUrl}`;
+          console.log('添加服务器地址后的图片URL:', imageUrl);
         }
         
         // 添加时间戳防止缓存
